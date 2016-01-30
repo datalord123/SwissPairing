@@ -10,21 +10,26 @@ DROP DATABASE IF EXISTS tournament;
 CREATE DATABASE tournament;
 \c tournament;
 
-DROP TABLE IF EXISTS Players CASCADE;
-DROP TABLE IF EXISTS Matches CASCADE;
+CREATE TABLE Players (Player_ID serial PRIMARY KEY,
+					  Player_Name text NOT NULL);
 
-CREATE TABLE Players (Player_ID serial PRIMARY KEY,Player_Name text);
-CREATE TABLE Matches (Match_ID serial PRIMARY KEY,winner integer references Players,loser integer references Players);
-\c postgres
+CREATE TABLE Matches (Match_ID serial PRIMARY KEY,
+					  winner integer references Players(Player_ID) ON DELETE CASCADE,
+					  loser integer  CHECK (winner <> loser) references Players(Player_ID) ON DELETE CASCADE);
 
--- -- Insert some data into players table
--- -- INSERT INTO players (Player_Name) VALUES ('Maria');
--- -- INSERT INTO players (Player_Name) VALUES ('Serena');
--- -- INSERT INTO players (Player_Name) VALUES ('Hingis');
-
-
-
--- -- Insert data into matches table
--- -- INSERT INTO matches (winner, loser) VALUES (1, 2);
--- -- INSERT INTO matches (winner, loser) VALUES (3, 2);
--- -- INSERT INTO matches (winner, loser) VALUES (1, 3);
+CREATE VIEW vPlayer_Status as SELECT base.Player_ID,base.Player_Name,Wins.n as wins,losses.n+Wins.n as Matches
+                 From Players base
+                 LEFT JOIN( 
+                       select a.player_id, count(b.winner) AS n 
+                       FROM players a
+                       LEFT JOIN matches b
+                       On a.Player_ID = b.winner
+                       group by a.player_id) Wins
+                on base.Player_ID=Wins.player_id
+                LEFT JOIN(
+                        Select a.Player_ID,count(b.loser) as n
+                        From Players a
+                        left join matches b 
+                        on a.Player_ID=b.loser
+                        group by a.Player_ID) losses
+                 on base.Player_ID=losses.Player_ID;
