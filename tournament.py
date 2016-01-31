@@ -53,8 +53,7 @@ def countPlayers():
 def playerStandings():
     c,conn=open_connection()
     c.execute("""SELECT Player_ID,Player_Name,wins,Matches 
-                 FROM vPlayer_Status
-                 ORDER by wins desc;""")
+                 FROM vPlayer_Status;""")
     result = c.fetchall()
     close_connection(conn)
     return result
@@ -63,7 +62,10 @@ def playerStandings():
 def reportMatch(winner, loser):
     c,conn=open_connection()
     #This might need to be redone to match tuple notation.
-    c.execute("INSERT INTO Matches (winner,loser) Values (%s,%s)",(winner,loser))    
+    try:
+        c.execute("INSERT INTO Matches (winner,loser) Values (%s,%s)",(winner,loser))    
+    except:
+        print "Ties are not supported, winner and loser must be different"    
     close_connection(conn)
 
  #   Returns a list of pairs of players for the next round of a match.  
@@ -73,33 +75,30 @@ def reportMatch(winner, loser):
 
 def swissPairings():
     c,conn=open_connection()
-    c.execute("""SELECT COUNT(Player_ID) FROM Players""")
-    c.execute("""SELECT a.Player_ID,a.Player_Name,b.Player_ID,b.Player_Name
-                 FROM vPlayer_Status a,vPlayer_Status b
-                 where a.wins=b.wins and a.Player_ID<b.Player_ID; """)
-    result = c.fetchall()
+    result= playerStandings()
+    left=[]
+    right=[]
+    pairs=[]
+    #Loop through the result set, break it into an even group
+    # and and odd group. Only include the player name and the
+    # player id number
+    for i in range(len(result)):      
+        if i %2==0:
+            left.append(result[i][0:2])
+        if i %2==1:
+            right.append(result[i][0:2])
+    #merge the two lists, so that each pair is represented by a tuple of tuples
+    step=zip(left,right)
+    #for each pair item in the list, merge the player tuples and append them to the
+    # pair list
+    for i in step:
+        pairs.append(i[0]+i[1])
     close_connection(conn)
-    return result
+    return pairs
 
-#Scrap code for the next version. 
-# Eventually my function for swiss pairings should be able to
-# work with an odd number of players.
-'''
-def swissPairings():
-    c,conn=open_connection()
-    c.execute("""SELECT COUNT(Player_ID) FROM Players""")
-    if c.fetchone()[0] %2==0: 
-        c.execute("""SELECT a.Player_ID,a.Player_Name,b.Player_ID,b.Player_Name
-                     FROM vPlayer_Status a,vPlayer_Status b
-                     where a.wins=b.wins and a.Player_ID<b.Player_ID; """)
-        result = c.fetchall()
-        print "Even"
-    else:
-        c.execute("""SELECT a.Player_ID,a.Player_Name,b.Player_ID,b.Player_Name
-                     FROM vPlayer_Status a,vPlayer_Status b
-                     where a.wins=b.wins and a.Player_ID<b.Player_ID; """)
-        result = c.fetchall()
-        print "Odd"
-    close_connection(conn)
-    return result
-'''
+# Alternative code
+    #c.execute("""SELECT COUNT(Player_ID) FROM Players""")
+    #c.execute("""SELECT a.Player_ID,a.Player_Name,b.Player_ID,b.Player_Name
+    #             FROM vPlayer_Status a,vPlayer_Status b
+    #             where a.wins=b.wins and a.Player_ID<b.Player_ID; """)
+    #result = c.fetchall()

@@ -32,4 +32,5 @@ CREATE VIEW vPlayer_Status as SELECT base.Player_ID,base.Player_Name,Wins.n as w
                         left join matches b 
                         on a.Player_ID=b.loser
                         group by a.Player_ID) losses
-                 on base.Player_ID=losses.Player_ID;
+                 on base.Player_ID=losses.Player_ID
+                 ORDER by wins desc;
